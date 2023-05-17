@@ -8,10 +8,16 @@ const {
   ListObjectsCommand,
 } = require("@aws-sdk/client-s3");
 const fs = require("fs");
-const { log } = require("console");
+const dotenv = require("dotenv");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
+
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
+
+const port = process.env.PORT || 3000;
 
 console.log("Starting server");
 
@@ -130,6 +136,6 @@ app.delete("/api/storage/:path", async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server started on port 3000");
-});
+app.listen(port, () =>
+  console.log(`API available on http://localhost:${port}`)
+);
