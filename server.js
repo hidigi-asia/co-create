@@ -93,7 +93,7 @@ app.get("/api/storage/:path", async (req, res) => {
 
 console.log("Initializing routes: [PUT] /api/storage/:path");
 
-app.put("/api/storage/:path", upload.single("file"), async (req, res) => {
+app.post("/api/storage/:path", upload.single("file"), async (req, res) => {
   const { path } = req.params;
   const { key } = req.body;
   const { file } = req;
@@ -111,6 +111,12 @@ app.put("/api/storage/:path", upload.single("file"), async (req, res) => {
     await s3.send(new PutObjectCommand(putParams));
 
     res.status(200).json({ message: "File uploaded successfully" });
+
+    fs.unlink(file.path, (err) => {
+      if (err) {
+        console.error("Error removing file", err);
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: "Error uploading the file" });
   }
