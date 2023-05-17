@@ -13,6 +13,8 @@ const { log } = require("console");
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
+console.log("Starting server");
+
 const s3 = new S3Client({
   region: "ap-southeast-1",
   credentials: {
@@ -23,6 +25,14 @@ const s3 = new S3Client({
 });
 
 const bucketName = "cocreate";
+
+console.log("Initializing bucket", bucketName);
+
+console.log("Initializing routes: [GET] /api/storage/:path/list");
+
+app.get("/", (req, res) => {
+  res.send("Server Active");
+});
 
 // List all files in a directory
 app.get("/api/storage/:path/list", async (req, res) => {
@@ -49,6 +59,8 @@ app.get("/api/storage/:path/list", async (req, res) => {
   }
 });
 
+console.log("Initializing routes : [GET] /api/storage/:path?key=key");
+
 app.get("/api/storage/:path", async (req, res) => {
   const { path } = req.params;
   const { key } = req.query;
@@ -73,6 +85,8 @@ app.get("/api/storage/:path", async (req, res) => {
   }
 });
 
+console.log("Initializing routes: [PUT] /api/storage/:path");
+
 app.put("/api/storage/:path", upload.single("file"), async (req, res) => {
   const { path } = req.params;
   const { key } = req.body;
@@ -96,6 +110,8 @@ app.put("/api/storage/:path", upload.single("file"), async (req, res) => {
   }
 });
 
+console.log("Initializing routes: [DELETE] /api/storage/:path?key=key");
+
 app.delete("/api/storage/:path", async (req, res) => {
   const { path } = req.params;
   const { key } = req.query;
@@ -114,4 +130,6 @@ app.delete("/api/storage/:path", async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log("App listening on port 3000"));
+app.listen(3000, () => {
+  console.log("Server started on port 3000");
+});
