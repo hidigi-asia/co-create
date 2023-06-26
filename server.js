@@ -12,6 +12,7 @@ const dotenv = require("dotenv");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
+const mime = require("mime-types");
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -77,12 +78,13 @@ app.get("/api/storage/:path", async (req, res) => {
   };
 
   try {
-    // Use stream
     const data = await s3.send(new GetObjectCommand(getParams));
+
     const fileStream = data.Body;
+    const contentType = mime.lookup(key); // Get the content type based on the file extension
 
     res.setHeader("Content-Disposition", `attachment; filename=${key}`);
-    res.setHeader("Content-Type", data.ContentType);
+    res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Length", data.ContentLength);
 
     fileStream.pipe(res.status(200));
@@ -100,11 +102,14 @@ app.post("/api/storage/:path", upload.single("file"), async (req, res) => {
 
   const fileStream = fs.createReadStream(file.path);
 
+  const contentType = mime.lookup(file.originalname); // Get the content type based on the file extension
+
   const putParams = {
     Bucket: bucketName,
     Key: `${path}/${key}`,
     Body: fileStream,
     ACL: "public-read", // Set ACL to public-read
+    ContentType: contentType, // Set the content type
   };
 
   try {
