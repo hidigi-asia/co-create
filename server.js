@@ -11,7 +11,7 @@ const fs = require("fs");
 const dotenv = require("dotenv");
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+const upload = multer();
 const mime = require("mime-types");
 
 if (process.env.NODE_ENV !== "production") {
@@ -20,18 +20,23 @@ if (process.env.NODE_ENV !== "production") {
 
 const port = process.env.PORT || 3000;
 
+const HOST_URL = process.env.HOST_URL;
+const S3_REGION = process.env.S3_REGION;
+const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY;
+const S3_SECRET_KEY = process.env.S3_SECRET_KEY;
+const S3_BUCKET = process.env.S3_BUCKET;
+
 console.log("Starting server");
 
 const s3 = new S3Client({
-  region: "ap-southeast-1",
+  region: S3_REGION,
   credentials: {
-    accessKeyId: "DO00F48D6G49TXRQ4JNK",
-    secretAccessKey: "CiCSRYIxEv/wRzynv8NEGLElUJB0Rl0opqIXEZWp2WE",
+    accessKeyId: S3_ACCESS_KEY,
+    secretAccessKey: S3_SECRET_KEY,
   },
-  endpoint: "https://sgp1.digitaloceanspaces.com",
 });
 
-const bucketName = "cocreate";
+const bucketName = S3_BUCKET;
 
 console.log("Initializing bucket", bucketName);
 
@@ -41,7 +46,6 @@ app.get("/", (req, res) => {
   res.send("Server Active");
 });
 
-// List all files in a directory
 app.get("/api/storage/:path/list", async (req, res) => {
   const { path } = req.params;
   console.log("Listing files", path);
@@ -100,29 +104,20 @@ app.post("/api/storage/:path", upload.single("file"), async (req, res) => {
   const { key } = req.body;
   const { file } = req;
 
-  const fileStream = fs.createReadStream(file.path);
-
-  const contentType = mime.lookup(file.originalname); // Get the content type based on the file extension
-
   const putParams = {
     Bucket: bucketName,
     Key: `${path}/${key}`,
-    Body: fileStream,
+    Body: file.buffer,
     ACL: "public-read", // Set ACL to public-read
-    ContentType: contentType, // Set the content type
+    ContentType: file.mimetype, // Set the content type
   };
 
   try {
     await s3.send(new PutObjectCommand(putParams));
 
-    res.status(200).json({ message: "File uploaded successfully" });
-
-    fs.unlink(file.path, (err) => {
-      if (err) {
-        console.error("Error removing file", err);
-      }
-    });
+    res.status(200).json({ url: `https://${HOST_URL}/${path}/${key}` });
   } catch (error) {
+    console.log("Error uploading the file", error);
     res.status(500).json({ error: "Error uploading the file" });
   }
 });
